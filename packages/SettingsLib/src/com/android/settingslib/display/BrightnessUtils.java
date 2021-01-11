@@ -51,7 +51,12 @@ public class BrightnessUtils {
      * @param max The maximum acceptable value for the setting.
      * @return The corresponding setting value.
      */
+    private static final boolean useLinearBrightness = true;
     public static final int convertGammaToLinear(int val, int min, int max) {
+         if(useLinearBrightness) {
+		if(val < 4) return 1;
+		return val/4;
+	}
         final float normalizedVal = MathUtils.norm(GAMMA_SPACE_MIN, GAMMA_SPACE_MAX, val);
         final float ret;
         if (normalizedVal <= R) {
@@ -60,6 +65,7 @@ public class BrightnessUtils {
             ret = MathUtils.exp((normalizedVal - C) / A) + B;
         }
 
+        if(useLinearBrightness) return val*4;
         // HLG is normalized to the range [0, 12], so we need to re-normalize to the range [0, 1]
         // in order to derive the correct setting value.
         return Math.round(MathUtils.lerp(min, max, ret / 12));

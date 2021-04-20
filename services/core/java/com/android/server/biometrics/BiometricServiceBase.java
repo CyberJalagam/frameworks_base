@@ -78,6 +78,7 @@ public abstract class BiometricServiceBase extends SystemService
 
     protected static final boolean DEBUG = true;
 
+    private static final boolean CLEANUP_UNKNOWN_TEMPLATES = false;
     private static final String KEY_LOCKOUT_RESET_USER = "lockout_reset_user";
     private static final int MSG_USER_SWITCHING = 10;
     private static final long CANCEL_TIMEOUT_LIMIT = 3000; // max wait for onCancel() from HAL,in ms
@@ -88,7 +89,6 @@ public abstract class BiometricServiceBase extends SystemService
     private final PowerManager mPowerManager;
     private final UserManager mUserManager;
     private final MetricsLogger mMetricsLogger;
-    private final boolean mCleanupUnusedFingerprints;
     private final boolean mPostResetRunnableForAllClients;
     private final BiometricTaskStackListener mTaskStackListener = new BiometricTaskStackListener();
     private final ResetClientStateRunnable mResetClientState = new ResetClientStateRunnable();
@@ -664,13 +664,7 @@ public abstract class BiometricServiceBase extends SystemService
         mUserManager = UserManager.get(mContext);
         mMetricsLogger = new MetricsLogger();
 
-        mCleanupUnusedFingerprints =
-                statsModality() == BiometricsProtoEnums.MODALITY_FINGERPRINT &&
-                mContext.getResources().getBoolean(
-                org.lineageos.platform.internal.R.bool.config_cleanupUnusedFingerprints);
-        mPostResetRunnableForAllClients =
-                statsModality() == BiometricsProtoEnums.MODALITY_FINGERPRINT &&
-                mContext.getResources().getBoolean(
+        mPostResetRunnableForAllClients = mContext.getResources().getBoolean(
                 org.lineageos.platform.internal.R.bool
                         .config_fingerprintPostResetRunnableForAllClients);
     }
@@ -1083,7 +1077,7 @@ public abstract class BiometricServiceBase extends SystemService
                             + "(" + newClient.getOwnerString() + ")"
                             + ", initiatedByClient = " + initiatedByClient);
                 }
-                if (mPostResetRunnableForAllClients) {
+                if (true) {
                     mHandler.removeCallbacks(mResetClientState);
                     mHandler.postDelayed(mResetClientState, CANCEL_TIMEOUT_LIMIT);
                 }
@@ -1255,7 +1249,7 @@ public abstract class BiometricServiceBase extends SystemService
      * @param userId
      */
     protected void doTemplateCleanupForUser(int userId) {
-        if (mCleanupUnusedFingerprints) {
+        if (CLEANUP_UNKNOWN_TEMPLATES) {
             enumerateUser(userId);
         }
     }
@@ -1279,8 +1273,8 @@ public abstract class BiometricServiceBase extends SystemService
                     restricted, getContext().getPackageName());
             removeInternal(client);
             FrameworkStatsLog.write(FrameworkStatsLog.BIOMETRIC_SYSTEM_HEALTH_ISSUE_DETECTED,
-                    statsModality(),
-                    BiometricsProtoEnums.ISSUE_UNKNOWN_TEMPLATE_ENROLLED_HAL);
+                    statsModality());
+
         } else {
             clearEnumerateState();
             if (mPendingClient != null) {
